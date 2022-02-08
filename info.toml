@@ -1,0 +1,12 @@
+[meta]
+name     = "COTD Stats"
+author   = "Chips"
+category = "Race"
+version  = "1.2.1"
+
+perms = "paid"
+siteid = 162
+
+[script]
+dependencies = [ "NadeoServices" ]
+imports = [ "Icons.as", "Time.as" ]
