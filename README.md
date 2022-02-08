@@ -15,6 +15,9 @@ Displays a widget that shows your current division as you play COTD qualifying.
 
 ## Change log
 
+### v1.3
+- refactor code to use `Permissions.as` and `Time::ParseRelativeTime()`
+
 ### v1.2.1
 - fixed condition when map is not set yet
 

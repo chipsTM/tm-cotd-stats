@@ -116,19 +116,6 @@ Json::Value FetchEndpoint(const string &in route) {
     return Json::Parse(req.String());
 }
 
-uint ParseStr(const string &in time) {
-    auto indexms = time.IndexOf(".");
-    auto ms = Text::ParseUInt(time.SubStr(indexms+1));
-    auto lhs = time.SubStr(0, indexms).Split(":");
-    lhs.Reverse();
-
-    uint total = ms;
-    for (uint i = 0; i < lhs.Length; i++) {
-        total += Text::ParseUInt(lhs[i]) * (60 ** i) * 1000;
-    }
-    return total;
-}
-
 void ReadHUD() {
 	auto app = cast<CTrackMania>(GetApp());
     auto network = cast<CTrackManiaNetwork>(app.Network);
@@ -153,7 +140,7 @@ void ReadHUD() {
                             nextdiv.hidden = true;
                         }
                         pb.div = "" + curdiv;
-                        pb.time = ParseStr(dtime);
+                        pb.time = Time::ParseRelativeTime(dtime);
                     }
                 }
             }
@@ -179,7 +166,7 @@ void Main() {
 
     while(true) {
 
-        if (network.ClientManiaAppPlayground !is null && network.ClientManiaAppPlayground.Playground !is null && network.ClientManiaAppPlayground.Playground.Map !is null && server_info.CurGameModeStr == "TM_TimeAttackDaily_Online") {
+        if (Permissions::PlayOnlineCompetition() && network.ClientManiaAppPlayground !is null && network.ClientManiaAppPlayground.Playground !is null && network.ClientManiaAppPlayground.Playground.Map !is null && server_info.CurGameModeStr == "TM_TimeAttackDaily_Online") {
             
             string mapid = network.ClientManiaAppPlayground.Playground.Map.MapInfo.MapUid;
 

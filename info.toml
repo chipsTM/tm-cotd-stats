@@ -2,11 +2,10 @@
 name     = "COTD Stats"
 author   = "Chips"
 category = "Race"
-version  = "1.2.1"
+version  = "1.3"
 
-perms = "paid"
 siteid = 162
 
 [script]
 dependencies = [ "NadeoServices" ]
-imports = [ "Icons.as", "Time.as" ]
+imports = [ "Permissions.as", "Time.as" ]
