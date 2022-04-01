@@ -1,5 +1,11 @@
-[Setting category="Display Settings" name="Window visible" description="To move the table, click and drag while the Openplanet overlay is visible."]
+[Setting category="Display Settings" name="Window visible" description="To move the table, click and drag while the Openplanet overlay is visible"]
 bool windowVisible = true;
+
+[Setting category="Display Settings" name="Show Div Delta" description="Shows your delta time for the different divisions"]
+bool showDivDelta = false;
+
+[Setting category="Display Settings" name="Show lower bound" description="Disabled by default"]
+bool showLowerBound = false;
 
 class DivTime {
     string div;
@@ -35,9 +41,10 @@ int curdiv = 0;
 
 DivTime@ div1 = DivTime("1", 0, "\\$fff", false);
 DivTime@ nextdiv = DivTime("--", 9999999, "\\$fff");
+DivTime@ lowerbounddiv = DivTime("--", 9999999, "\\$fff", !showLowerBound);
 DivTime@ pb = DivTime("--", 9999999, "\\$0ff", false);
 
-array<DivTime@> divs = { pb, div1, nextdiv };
+array<DivTime@> divs = { pb, div1, nextdiv, lowerbounddiv };
 
 void Render() {
 #if TMNEXT
@@ -67,16 +74,25 @@ void Render() {
         UI::Text(cotdName);
         UI::TableNextRow();
         UI::TableNextColumn();
-        UI::Text("\\$aaa" + totalPlayers + " players\\$z");
+        UI::Text("\\$aaa" + totalPlayers + " players (" + Math::Ceil(totalPlayers/64.0) + " divs)\\$z");
         UI::EndTable();
 
-        UI::BeginTable("ranking", 2, UI::TableFlags::SizingFixedFit);
+        if (showDivDelta) {
+            UI::BeginTable("ranking", 3, UI::TableFlags::SizingFixedFit);
+        } else {
+            UI::BeginTable("ranking", 2, UI::TableFlags::SizingFixedFit);
+        }
 
         UI::TableNextRow();
         UI::TableNextColumn();
         UI::Text("Div");
         UI::TableNextColumn();
         UI::Text("Cutoff");
+
+        if (showDivDelta) {
+            UI::TableNextColumn();
+            UI::Text("Delta");
+        }
 
         for(uint i = 0; i < divs.Length; i++) {
             if(divs[i].hidden) {
@@ -87,6 +103,14 @@ void Render() {
             UI::Text(divs[i].DivString());
             UI::TableNextColumn();
             UI::Text(divs[i].TimeString());
+
+            if (showDivDelta && !divs[i].hidden) {
+                UI::TableNextColumn();
+                int deltaTime = pb.time - divs[i].time;
+                if (deltaTime != 0 && pb.time != 9999999 && divs[i].time != 9999999) {
+                    UI::Text(((deltaTime >= 0) ? "\\$F70+" : "\\$26F-") + Time::Format(Math::Abs(deltaTime)) + "\\$z");
+                }
+            }
         }
 
         UI::EndTable();
@@ -138,6 +162,9 @@ void ReadHUD() {
                         // hide next best until we have an actual div greater than 2
                         if (curdiv <= 2) {
                             nextdiv.hidden = true;
+                        }
+                        if (curdiv > Text::ParseInt(lowerbounddiv.div)) {
+                            lowerbounddiv.hidden = true;
                         }
                         pb.div = "" + curdiv;
                         pb.time = Time::ParseRelativeTime(dtime);
@@ -192,6 +219,17 @@ void Main() {
             auto leadDiv1 = FetchEndpoint(compUrl + "/api/challenges/" + challengeid + "/records/maps/" + mapid + "?length=1&offset=63");
             if (leadDiv1.Length > 0) {
                 div1.time = leadDiv1[0]["time"];
+            }
+
+            if (showLowerBound && curdiv > 1) {
+                auto lowerBound = FetchEndpoint(compUrl + "/api/challenges/" + challengeid + "/records/maps/" + mapid + "?length=1&offset=" + (64 * (curdiv) - 1));
+                if (lowerBound.Length > 0) {
+                    lowerbounddiv.time = lowerBound[0]["time"];
+                }
+                lowerbounddiv.div = "" + curdiv;
+                lowerbounddiv.hidden = false;
+            } else {
+                lowerbounddiv.hidden = true;
             }
 
             // Fetch next best Div cutoff record only if we are higher than Div 2

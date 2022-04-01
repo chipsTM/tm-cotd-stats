@@ -9,11 +9,18 @@
 Displays a widget that shows your current division as you play COTD qualifying.
 
 ## Features
-- Shows total number of players
+- Shows total number of players (and total divs)
 - Shows div 1 cutoff time
 - Shows your "next best" div cutoff time
+- [Optional] current div cutoff time
+- [Optional] time deltas
 
 ## Change log
+
+### v1.4
+- added total divs next to total players
+- added optional setting for showing the cutoff time for your current div
+- added optional setting for showing the delta times
 
 ### v1.3
 - refactor code to use `Permissions.as` and `Time::ParseRelativeTime()`
