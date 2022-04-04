@@ -163,11 +163,12 @@ void ReadHUD() {
                         if (curdiv <= 2) {
                             nextdiv.hidden = true;
                         }
-                        if (curdiv > Text::ParseInt(lowerbounddiv.div)) {
-                            lowerbounddiv.hidden = true;
-                        }
                         pb.div = "" + curdiv;
                         pb.time = Time::ParseRelativeTime(dtime);
+
+                        if (curdiv > Text::ParseInt(lowerbounddiv.div) || pb.time > lowerbounddiv.time) {
+                            lowerbounddiv.hidden = true;
+                        }
                     }
                 }
             }
