@@ -32,7 +32,7 @@ class DivTime {
     }
 
     string TimeString() {
-        return this.style + (((this.time > 0) && (this.time != 9999999)) ? Time::Format(this.time) : "-:--.---") + "\\$z";
+        return this.style + (((this.time > 0) && (this.time <= 999999)) ? Time::Format(this.time) : "-:--.---") + "\\$z";
     }
 
     int opCmp(DivTime@ other) {
@@ -216,7 +216,7 @@ void SetDivCutoff(CotdApi@ api, DivTime@&in divObj, int cid, string mid, int div
             auto res = api.GetCutoffForDiv(cid, mid, div);
             divObj.time = (res.Length > 0) ? res[0]["time"] : 0;
         } else { // when the division isn't full
-            divObj.time = 0;
+            divObj.time = 9999999;
         }
         divObj.div = "" + div;
         divObj.hidden = false;
