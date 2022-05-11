@@ -73,7 +73,12 @@ void Render() {
             windowFlags |= UI::WindowFlags::NoInputs;
         }
 
-        UI::Begin("COTD Qualifying 2", windowFlags);
+// We need a different window name to run multiple copies of the plugin (otherwise everything gets drawn in one window)
+#if DEV
+        UI::Begin("COTD Qualifying (Dev)", windowFlags);
+#else
+        UI::Begin("COTD Qualifying", windowFlags);
+#endif
 
         UI::PushStyleVar(UI::StyleVar::ItemSpacing, vec2(0, 0));
         UI::Dummy(vec2(0, 0));
@@ -361,6 +366,7 @@ class CotdApi {
 
 class GameInfo {
     CTrackMania@ app; // = GetTmApp();
+    // todo: these references might change -- refactor to getter functions or something
     CTrackManiaNetwork@ network; // = cast<CTrackManiaNetwork>(app.Network);
     CTrackManiaNetworkServerInfo@ server_info; // = cast<CTrackManiaNetworkServerInfo>(network.ServerInfo);
 
