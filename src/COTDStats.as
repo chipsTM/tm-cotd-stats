@@ -219,7 +219,7 @@ void SetDivCutoff(CotdApi@ api, DivTime@&in divObj, int cid, string mid, int div
         // and don't request div cutoff times if the div isn't full
         if (div * 64 <= totalPlayers) {
             auto res = api.GetCutoffForDiv(cid, mid, div);
-            divObj.time = (res.Length > 0) ? res[0]["time"] : 0;
+            divObj.time = (res.Length > 0) ? res[0]["time"] : MAX_DIV_TIME;
         } else { // when the division isn't full
             divObj.time = MAX_DIV_TIME;
         }
@@ -309,6 +309,9 @@ void UpdateFromAPI() {
                 belowdiv.hidden = true;
             }
 
+            if (curdiv + 1 > Math::Ceil(totalPlayers / 64.)) {
+                belowdiv.hidden = true;
+            }
         } else {
             if (!canCallAPI) {
                 // Reset challenge id once COTD ends
@@ -371,17 +374,22 @@ class CotdApi {
 
 class GameInfo {
     CTrackMania@ app; // = GetTmApp();
-    // todo: these references might change -- refactor to getter functions or something
-    CTrackManiaNetwork@ network; // = cast<CTrackManiaNetwork>(app.Network);
-    CTrackManiaNetworkServerInfo@ server_info; // = cast<CTrackManiaNetworkServerInfo>(network.ServerInfo);
 
     GameInfo() {
         @app = GetTmApp();
-        @network = cast<CTrackManiaNetwork>(app.Network);
-        @server_info = cast<CTrackManiaNetworkServerInfo>(network.ServerInfo);
+    }
+
+    CTrackManiaNetwork@ GetNetwork() {
+        return cast<CTrackManiaNetwork>(app.Network);
+    }
+
+    CTrackManiaNetworkServerInfo@ GetServerInfo() {
+        return cast<CTrackManiaNetworkServerInfo>(network.ServerInfo);
     }
 
     bool IsCotd() {
+        auto network = GetNetwork();
+        auto server_info = GetServerInfo();
         return network.ClientManiaAppPlayground !is null
             && network.ClientManiaAppPlayground.Playground !is null
             && server_info.CurGameModeStr == "TM_TimeAttackDaily_Online";
@@ -399,9 +407,5 @@ class GameInfo {
         }
 #endif
         return (rm is null) ? "" : rm.IdName;
-        // if (rm is null) {
-        //     return "";
-        // }
-        // return rm.IdName;
     }
 }
