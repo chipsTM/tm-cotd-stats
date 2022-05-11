@@ -13,6 +13,11 @@ bool showExtraDivs = false;
 [Setting category="Display Settings" name="Locator mode" description="Shows the window outside COTD so you can drag it around"]
 bool locatorMode = false;
 
+const int MAX_DIV_TIME = 9999999;
+// MAX_DIV_TIME of 9999999 is 10k seconds.
+// We can safely `>> 3` is roughly division by 8 (which is still 1k+ seconds).
+// Since COTD is at most ~120s, we can safely assume values for .time that are greater than (MAX_DIV_TIME >> 3) are dummy times.
+// So we use `MAX_DIV_TIME >> 3` as a comparison value.
 
 class DivTime {
     string div;
@@ -20,7 +25,7 @@ class DivTime {
     string style;
     bool hidden;
 
-    DivTime(string div = "--", int time = 9999999, string style = "\\$fff", bool hidden = true) {
+    DivTime(string div = "--", int time = MAX_DIV_TIME, string style = "\\$fff", bool hidden = true) {
         this.div = div;
         this.time = time;
         this.style = style;
@@ -32,7 +37,7 @@ class DivTime {
     }
 
     string TimeString() {
-        return this.style + (((this.time > 0) && (this.time <= 999999)) ? Time::Format(this.time) : "-:--.---") + "\\$z";
+        return this.style + (((this.time > 0) && (this.time < MAX_DIV_TIME >> 3)) ? Time::Format(this.time) : "-:--.---") + "\\$z";
     }
 
     int opCmp(DivTime@ other) {
@@ -47,15 +52,15 @@ int totalPlayers = 0;
 int curdiv = 0;
 
 DivTime@ div1 = DivTime("1", 0, "\\$fff", false);
-DivTime@ nextdiv = DivTime("--", 9999999, "\\$fff");
-DivTime@ lowerbounddiv = DivTime("--", 9999999, "\\$fff", !showLowerBound);
-DivTime@ pb = DivTime("--", 9999999, "\\$0ff", false);
+DivTime@ nextdiv = DivTime("--", MAX_DIV_TIME, "\\$fff");
+DivTime@ lowerbounddiv = DivTime("--", MAX_DIV_TIME, "\\$fff", !showLowerBound);
+DivTime@ pb = DivTime("--", MAX_DIV_TIME, "\\$0ff", false);
 
-DivTime@ nextnextdiv = DivTime("--", 9999999, "\\$fff");
-DivTime@ belowdiv = DivTime("--", 9999999, "\\$fff");
+DivTime@ nextnextdiv = DivTime("--", MAX_DIV_TIME, "\\$fff");
+DivTime@ belowdiv = DivTime("--", MAX_DIV_TIME, "\\$fff");
 
 // to track when pb changes
-DivTime@ lastPb = DivTime("--", 9999999, "\\$0ff", false);
+DivTime@ lastPb = DivTime("--", MAX_DIV_TIME, "\\$0ff", false);
 bool flag_api_haveNewPb = false;
 
 array<DivTime@> divs = { pb, div1, nextnextdiv, nextdiv, lowerbounddiv, belowdiv };
@@ -125,7 +130,7 @@ void Render() {
             if (showDivDelta && !divs[i].hidden) {
                 UI::TableNextColumn();
                 int deltaTime = pb.time - divs[i].time;
-                if (deltaTime != 0 && pb.time != 9999999 && divs[i].time != 9999999) {
+                if (deltaTime != 0 && pb.time < MAX_DIV_TIME >> 3 && divs[i].time < MAX_DIV_TIME >> 3) {
                     UI::Text(((deltaTime >= 0) ? "\\$F70+" : "\\$26F-") + Time::Format(Math::Abs(deltaTime)) + "\\$z");
                 }
             }
@@ -216,7 +221,7 @@ void SetDivCutoff(CotdApi@ api, DivTime@&in divObj, int cid, string mid, int div
             auto res = api.GetCutoffForDiv(cid, mid, div);
             divObj.time = (res.Length > 0) ? res[0]["time"] : 0;
         } else { // when the division isn't full
-            divObj.time = 9999999;
+            divObj.time = MAX_DIV_TIME;
         }
         divObj.div = "" + div;
         divObj.hidden = false;
