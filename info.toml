@@ -9,3 +9,4 @@ siteid = 162
 [script]
 dependencies = [ "NadeoServices" ]
 imports = [ "Permissions.as", "Time.as" ]
+# defines = [ "DEV" ]

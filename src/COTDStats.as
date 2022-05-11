@@ -7,6 +7,13 @@ bool showDivDelta = false;
 [Setting category="Display Settings" name="Show lower bound" description="Disabled by default"]
 bool showLowerBound = false;
 
+[Setting category="Display Settings" name="Show additional division cutoffs" description="Disabled by default"]
+bool showExtraDivs = false;
+
+[Setting category="Display Settings" name="Locator mode" description="Shows the window outside COTD so you can drag it around"]
+bool locatorMode = false;
+
+
 class DivTime {
     string div;
     int time;
@@ -34,8 +41,8 @@ class DivTime {
 	}
 }
 
-// Global variables  
-string cotdName = "";
+// Global variables
+string cotdName = "<COTD Name>";
 int totalPlayers = 0;
 int curdiv = 0;
 
@@ -44,23 +51,29 @@ DivTime@ nextdiv = DivTime("--", 9999999, "\\$fff");
 DivTime@ lowerbounddiv = DivTime("--", 9999999, "\\$fff", !showLowerBound);
 DivTime@ pb = DivTime("--", 9999999, "\\$0ff", false);
 
-array<DivTime@> divs = { pb, div1, nextdiv, lowerbounddiv };
+DivTime@ nextnextdiv = DivTime("--", 9999999, "\\$fff");
+DivTime@ belowdiv = DivTime("--", 9999999, "\\$fff");
+
+// to track when pb changes
+DivTime@ lastPb = DivTime("--", 9999999, "\\$0ff", false);
+bool flag_api_haveNewPb = false;
+
+array<DivTime@> divs = { pb, div1, nextnextdiv, nextdiv, lowerbounddiv, belowdiv };
+
+GameInfo@ gameInfo;
 
 void Render() {
 #if TMNEXT
-    auto app = cast<CTrackMania>(GetApp());
-    auto network = cast<CTrackManiaNetwork>(app.Network);
-    auto server_info = cast<CTrackManiaNetworkServerInfo>(network.ServerInfo);
+    bool showWindow = windowVisible && gameInfo !is null && gameInfo.IsCotd();
+    if (showWindow || locatorMode) {
 
-    if (windowVisible && app.CurrentPlayground !is null && server_info.CurGameModeStr == "TM_TimeAttackDaily_Online") {
-    
         int windowFlags = UI::WindowFlags::NoTitleBar | UI::WindowFlags::NoCollapse | UI::WindowFlags::AlwaysAutoResize | UI::WindowFlags::NoDocking;
 
         if (!UI::IsOverlayShown()) {
             windowFlags |= UI::WindowFlags::NoInputs;
         }
 
-        UI::Begin("COTD Qualifying", windowFlags);
+        UI::Begin("COTD Qualifying 2", windowFlags);
 
         UI::PushStyleVar(UI::StyleVar::ItemSpacing, vec2(0, 0));
         UI::Dummy(vec2(0, 0));
@@ -114,9 +127,9 @@ void Render() {
         }
 
         UI::EndTable();
-        
+
         UI::EndGroup();
-        
+
         UI::End();
 
     }
@@ -131,22 +144,13 @@ void RenderMenu() {
 #endif
 }
 
-Json::Value FetchEndpoint(const string &in route) {
-    auto req = NadeoServices::Get("NadeoClubServices", route);
-    req.Start();
-    while(!req.Finished()) {
-        yield();
-    }
-    return Json::Parse(req.String());
-}
-
 void ReadHUD() {
 	auto app = cast<CTrackMania>(GetApp());
     auto network = cast<CTrackManiaNetwork>(app.Network);
     auto server_info = cast<CTrackManiaNetworkServerInfo>(network.ServerInfo);
 
 	while (true) {
-		if (network.ClientManiaAppPlayground !is null && network.ClientManiaAppPlayground.Playground !is null && server_info.CurGameModeStr == "TM_TimeAttackDaily_Online") {
+		if (gameInfo.IsCotd()) {
             auto uilayers = network.ClientManiaAppPlayground.UILayers;
             for (uint i = 0; i < uilayers.Length; i++) {
                 if (uilayers[i].LocalPage.MainFrame !is null) {
@@ -166,6 +170,10 @@ void ReadHUD() {
                         pb.div = "" + curdiv;
                         pb.time = Time::ParseRelativeTime(dtime);
 
+                        // check if we have a new pb
+                        flag_api_haveNewPb = pb.time != lastPb.time;
+                        lastPb.time = pb.time;
+
                         if (curdiv > Text::ParseInt(lowerbounddiv.div) || pb.time > lowerbounddiv.time) {
                             lowerbounddiv.hidden = true;
                         }
@@ -174,29 +182,82 @@ void ReadHUD() {
             }
         }
         divs.SortAsc();
-		sleep(500);
+		sleep(100);
 	}
 }
 
 void Main() {
 #if TMNEXT
-    auto app = cast<CTrackMania>(GetApp());
-    auto network = cast<CTrackManiaNetwork>(app.Network);
-    auto server_info = cast<CTrackManiaNetworkServerInfo>(network.ServerInfo);
-    
-    NadeoServices::AddAudience("NadeoClubServices");
-    string compUrl = NadeoServices::BaseURLCompetition();
+    @gameInfo = GameInfo();
 
     // Use Co-routine to read HUD faster than API calls
     startnew(ReadHUD);
 
+    startnew(UpdateFromAPI);
+#endif
+}
+
+
+CTrackMania@ GetTmApp() {
+    return cast<CTrackMania>(GetApp());
+}
+
+// todo: check if the div is full or not -- will get wrong times otherwise
+void SetDivCutoff(CotdApi@ api, DivTime@&in divObj, int cid, string mid, int div) {
+    // Only do this if div > 1 b/c we're already fetching div1 separately,
+    if (div > 1) {
+        // and don't request div cutoff times if the div isn't full
+        if (div * 64 <= totalPlayers) {
+            auto res = api.GetCutoffForDiv(cid, mid, div);
+            divObj.time = (res.Length > 0) ? res[0]["time"] : 0;
+        } else { // when the division isn't full
+            divObj.time = 0;
+        }
+        divObj.div = "" + div;
+        divObj.hidden = false;
+    } else {
+        divObj.hidden = true;
+    }
+}
+
+void UpdateFromAPI() {
+    auto api = CotdApi();
+
+    auto app = GetTmApp();
+    auto network = cast<CTrackManiaNetwork>(app.Network);
+    auto server_info = cast<CTrackManiaNetworkServerInfo>(network.ServerInfo);
+
     int challengeid = 0;
 
-    while(true) {
+    // loop and sleep params/vars
+    int msBetweenCalls = 15000;
+    int sleepPerLoop = 100;
 
-        if (Permissions::PlayOnlineCompetition() && network.ClientManiaAppPlayground !is null && network.ClientManiaAppPlayground.Playground !is null && network.ClientManiaAppPlayground.Playground.Map !is null && server_info.CurGameModeStr == "TM_TimeAttackDaily_Online") {
-            
-            string mapid = network.ClientManiaAppPlayground.Playground.Map.MapInfo.MapUid;
+    // use loopCounter to only check API once every 15s
+    int loopCounter = 0;
+    int maxLoopCounter = msBetweenCalls / sleepPerLoop;
+
+    // vars used every loop
+    bool canCallAPI;
+    bool checkThisLoop;
+    bool hasPlayerId;
+    string mapid;
+
+    while (true) {
+        canCallAPI = Permissions::PlayOnlineCompetition() && gameInfo.IsCotd();
+
+        if (flag_api_haveNewPb) {
+            loopCounter = 0;  // reset the counter to call the API now and also prevent us excessively calling the API
+            flag_api_haveNewPb = false;
+        }
+
+        mapid = gameInfo.MapId();
+
+        checkThisLoop = canCallAPI && mapid != "" && loopCounter == 0;
+
+        if (checkThisLoop) {
+
+            // trace("mapid:" + mapid);
 
             while (!NadeoServices::IsAuthenticated("NadeoClubServices")) {
                 yield();
@@ -204,52 +265,132 @@ void Main() {
 
             // We only need this info once at the beginning of the COTD
             if (challengeid == 0) {
-                auto matchstatus = FetchEndpoint(compUrl + "/api/daily-cup/current");
+                auto matchstatus = api.GetCotdStatus();
                 string challengeName = matchstatus["challenge"]["name"];
 
                 cotdName = "COTD " + challengeName.SubStr(15, 13);
                 challengeid = matchstatus["challenge"]["id"];
             }
 
-            // Use this to obtain "real-time" number of players registered in the COTD 
+            // Use this to obtain "real-time" number of players registered in the COTD
             // (could've also used this to determine player rank and score, but for better experience we get those from HUD instead)
-            auto rank = FetchEndpoint(compUrl + "/api/challenges/" + challengeid + "/records/maps/" + mapid + "/players?players[]=" + network.PlayerInfo.WebServicesUserId);
+            auto rank = api.GetPlayersRank(challengeid, mapid, network.PlayerInfo.WebServicesUserId);
             totalPlayers = rank["cardinal"];
 
             // Fetch Div 1 cutoff record
-            auto leadDiv1 = FetchEndpoint(compUrl + "/api/challenges/" + challengeid + "/records/maps/" + mapid + "?length=1&offset=63");
+            auto leadDiv1 = api.GetCutoffForDiv(challengeid, mapid, 1);
             if (leadDiv1.Length > 0) {
                 div1.time = leadDiv1[0]["time"];
             }
 
-            if (showLowerBound && curdiv > 1) {
-                auto lowerBound = FetchEndpoint(compUrl + "/api/challenges/" + challengeid + "/records/maps/" + mapid + "?length=1&offset=" + (64 * (curdiv) - 1));
-                if (lowerBound.Length > 0) {
-                    lowerbounddiv.time = lowerBound[0]["time"];
-                }
-                lowerbounddiv.div = "" + curdiv;
-                lowerbounddiv.hidden = false;
+            if (showLowerBound) {
+                SetDivCutoff(api, lowerbounddiv, challengeid, mapid, curdiv);
             } else {
                 lowerbounddiv.hidden = true;
             }
 
-            // Fetch next best Div cutoff record only if we are higher than Div 2
-            if (curdiv > 2) {
-                auto leadNextBest = FetchEndpoint(compUrl + "/api/challenges/" + challengeid + "/records/maps/" + mapid + "?length=1&offset=" + (64 * (curdiv - 1) - 1));
-                if (leadNextBest.Length > 0) {
-                    nextdiv.time = leadNextBest[0]["time"];
-                }
-                nextdiv.div = "" + (curdiv-1);
-                nextdiv.hidden = false;
+            SetDivCutoff(api, nextdiv, challengeid, mapid, curdiv - 1);
+
+            if (showExtraDivs) {
+                SetDivCutoff(api, nextnextdiv, challengeid, mapid, curdiv - 2);
+                SetDivCutoff(api, belowdiv, challengeid, mapid, curdiv + 1);
             } else {
-                nextdiv.hidden = true;
+                nextnextdiv.hidden = true;
+                belowdiv.hidden = true;
             }
 
         } else {
-            // Reset challenge id once COTD ends
-            challengeid = 0;
+            if (!canCallAPI) {
+                // Reset challenge id once COTD ends
+                challengeid = 0;
+            }
         }
-        sleep(15000);
+
+        loopCounter = (loopCounter + 1) % maxLoopCounter;
+        sleep(sleepPerLoop);
     }
+}
+
+Json::Value FetchEndpoint(const string &in route) {
+    auto req = NadeoServices::Get("NadeoClubServices", route);
+    req.Start();
+    while(!req.Finished()) {
+        yield();
+    }
+    return Json::Parse(req.String());
+}
+
+class CotdApi {
+    string compUrl;
+    CTrackMania@ app; // = GetTmApp();
+    CTrackManiaNetwork@ network; // = cast<CTrackManiaNetwork>(app.Network);
+    CTrackManiaNetworkServerInfo@ server_info; // = cast<CTrackManiaNetworkServerInfo>(network.ServerInfo);
+
+    CotdApi() {
+        NadeoServices::AddAudience("NadeoClubServices");
+        compUrl = NadeoServices::BaseURLCompetition();
+
+        @app = GetTmApp();
+        @network = cast<CTrackManiaNetwork>(app.Network);
+        @server_info = cast<CTrackManiaNetworkServerInfo>(network.ServerInfo);
+    }
+
+    Json::Value CallApiPath(string path) {
+        if (path.Length <= 0 || !path.StartsWith("/")) {
+            warn("[CallApiPath] API Paths should start with '/'!");
+            path = "/" + path;
+        }
+        trace("Requesting: " + compUrl + path);
+        return FetchEndpoint(compUrl + path);
+    }
+
+    Json::Value GetCotdStatus() {
+        return CallApiPath("/api/daily-cup/current");
+    }
+
+    Json::Value GetCutoffForDiv(int challengeid, string mapid, int div) {
+        // the last position in the div
+        int offset = div * 64 - 1;
+        return CallApiPath("/api/challenges/" + challengeid + "/records/maps/" + mapid + "?length=1&offset=" + offset);
+    }
+
+    Json::Value GetPlayersRank(int challengeid, string mapid, string userId) {
+        return CallApiPath("/api/challenges/" + challengeid + "/records/maps/" + mapid + "/players?players[]=" + userId);
+    }
+}
+
+class GameInfo {
+    CTrackMania@ app; // = GetTmApp();
+    CTrackManiaNetwork@ network; // = cast<CTrackManiaNetwork>(app.Network);
+    CTrackManiaNetworkServerInfo@ server_info; // = cast<CTrackManiaNetworkServerInfo>(network.ServerInfo);
+
+    GameInfo() {
+        @app = GetTmApp();
+        @network = cast<CTrackManiaNetwork>(app.Network);
+        @server_info = cast<CTrackManiaNetworkServerInfo>(network.ServerInfo);
+    }
+
+    bool IsCotd() {
+        return network.ClientManiaAppPlayground !is null
+            && network.ClientManiaAppPlayground.Playground !is null
+            && server_info.CurGameModeStr == "TM_TimeAttackDaily_Online";
+    }
+
+    string MapId() {
+        auto rm = app.RootMap;
+#if DEV
+        int now = Time::get_Now();
+        if ((now % 1000) < 100) {
+            trace("[MapId()," + now + "] rm is null: " + (rm is null));
+            if (rm !is null) {
+                trace("[MapId()," + now + "] rm.IdName: " + rm.IdName);
+            }
+        }
 #endif
+        return (rm is null) ? "" : rm.IdName;
+        // if (rm is null) {
+        //     return "";
+        // }
+        // return rm.IdName;
+    }
 }
