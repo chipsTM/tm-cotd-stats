@@ -19,6 +19,8 @@ const int MAX_DIV_TIME = 9999999;
 // Since COTD is at most ~120s, we can safely assume values for .time that are greater than (MAX_DIV_TIME >> 3) are dummy times.
 // So we use `MAX_DIV_TIME >> 3` as a comparison value.
 
+int lastUpdated = 0;
+
 class DivTime {
     string div;
     int time;
@@ -95,6 +97,9 @@ void Render() {
         UI::TableNextRow();
         UI::TableNextColumn();
         UI::Text(cotdName);
+        UI::TableNextRow();
+        UI::TableNextColumn();
+        UI::Text("Updated: " + ((Time::get_Now() - lastUpdated) / 1000.) + " s ago");
         UI::TableNextRow();
         UI::TableNextColumn();
         UI::Text("\\$aaa" + totalPlayers + " players (" + Math::Ceil(totalPlayers/64.0) + " divs)\\$z");
@@ -266,7 +271,7 @@ void UpdateFromAPI() {
         checkThisLoop = canCallAPI && mapid != "" && loopCounter == 0;
 
         if (checkThisLoop) {
-
+            lastUpdated = Time::get_Now();
             // trace("mapid:" + mapid);
 
             while (!NadeoServices::IsAuthenticated("NadeoClubServices")) {
@@ -384,7 +389,7 @@ class GameInfo {
     }
 
     CTrackManiaNetworkServerInfo@ GetServerInfo() {
-        return cast<CTrackManiaNetworkServerInfo>(network.ServerInfo);
+        return cast<CTrackManiaNetworkServerInfo>(GetNetwork().ServerInfo);
     }
 
     bool IsCotd() {
