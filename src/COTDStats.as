@@ -99,7 +99,7 @@ void Render() {
         UI::Text(cotdName);
         UI::TableNextRow();
         UI::TableNextColumn();
-        UI::Text("Updated: " + ((Time::get_Now() - lastUpdated) / 1000.) + " s ago");
+        UI::Text("Updated: " + Text::Format("%.1f", (Time::get_Now() - lastUpdated) / 1000.) + " s ago");
         UI::TableNextRow();
         UI::TableNextColumn();
         UI::Text("\\$aaa" + totalPlayers + " players (" + Math::Ceil(totalPlayers/64.0) + " divs)\\$z");
