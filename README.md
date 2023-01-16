@@ -17,6 +17,9 @@ Displays a widget that shows your current division as you play COTD qualifying.
 
 ## Change log
 
+### v1.5
+- code cleanup and fixes
+
 ### v1.4
 - added total divs next to total players
 - added optional setting for showing the cutoff time for your current div
