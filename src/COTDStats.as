@@ -211,7 +211,7 @@ void Main() {
                     cotdName = "COTD " + challengeName.SubStr(15, 13);
                     challengeid = matchstatus["challenge"]["id"];
                 } else {
-                    trace("Failed to get current cup details, retrying...")
+                    trace("Failed to get current cup details, retrying...");
                 }
             }
 
