@@ -150,25 +150,36 @@ void ReadHUD() {
             auto uilayers = network.ClientManiaAppPlayground.UILayers;
             for (uint i = 0; i < uilayers.Length; i++) {
                 if (uilayers[i].LocalPage.MainFrame !is null) {
-                    auto fs = uilayers[i].LocalPage.MainFrame.GetFirstChild("frame-score-owner");
-                    if (fs !is null) {
-                        auto tmp = cast<CControlFrame>(fs.Control);
-                        string drank = cast<CControlLabel>(tmp.Childs[0]).Label;
-                        string dname = cast<CControlLabel>(tmp.Childs[1]).Label;
-                        string dtime = cast<CControlLabel>(tmp.Childs[2]).Label;
+                    string drank;
+                    string dname;
+                    string dtime;
+                    auto lrank = uilayers[i].LocalPage.MainFrame.GetFirstChild("label-rank");
+                    if (lrank !is null) {
+                        drank = cast<CControlLabel>(lrank.Control).Label;
                         float irank = Text::ParseFloat(drank);
                         curdiv = uint(Math::Ceil(irank / 64.0f));
-
-                        // hide next best until we have an actual div greater than 2
-                        if (curdiv <= 2) {
-                            nextdiv.hidden = true;
-                        }
                         pb.div = "" + curdiv;
+                    }
+                    // auto lname = uilayers[i].LocalPage.MainFrame.GetFirstChild("label-name");
+                    // if (lname !is null) {
+                    //     dname = cast<CControlLabel>(lname.Control).Label;
+                    // }
+                    auto ltime = uilayers[i].LocalPage.MainFrame.GetFirstChild("label-time");
+                    if (ltime !is null) {
+                        dtime = cast<CControlLabel>(ltime.Control).Label;
                         pb.time = Time::ParseRelativeTime(dtime);
+                    }
+                    // string drank = cast<CControlLabel>(tmp.Childs[2]).Label;
+                    // string dname = cast<CControlLabel>(tmp.Childs[3]).Label;
+                    // string dtime = cast<CControlLabel>(tmp.Childs[4]).Label;
 
-                        if (curdiv > Text::ParseInt(lowerbounddiv.div) || pb.time > lowerbounddiv.time) {
-                            lowerbounddiv.hidden = true;
-                        }
+                    // hide next best until we have an actual div greater than 2
+                    if (curdiv <= 2) {
+                        nextdiv.hidden = true;
+                    }
+
+                    if (curdiv > Text::ParseInt(lowerbounddiv.div) || pb.time > lowerbounddiv.time) {
+                        lowerbounddiv.hidden = true;
                     }
                 }
             }
