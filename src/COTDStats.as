@@ -216,10 +216,8 @@ void Main() {
             // We only need this info once at the beginning of the COTD
             if (challengeid == 0) {
                 auto matchstatus = FetchEndpoint(compUrl + "/api/cup-of-the-day/current");
-                if (matchstatus.HasKey("challenge")) {
-                    string challengeName = matchstatus["challenge"]["name"];
-
-                    cotdName = "COTD " + challengeName.SubStr(15, 13);
+                if (matchstatus.HasKey("challenge") && matchstatus.HasKey("competition")) {
+                    cotdName = matchstatus["competition"]["name"];
                     challengeid = matchstatus["challenge"]["id"];
                 } else {
                     trace("Failed to get current cup details, retrying...");
