@@ -52,7 +52,7 @@ void Render() {
     auto network = cast<CTrackManiaNetwork>(app.Network);
     auto server_info = cast<CTrackManiaNetworkServerInfo>(network.ServerInfo);
 
-    if (windowVisible && app.CurrentPlayground !is null && server_info.CurGameModeStr == "TM_TimeAttackDaily_Online") {
+    if (windowVisible && app.CurrentPlayground !is null && (server_info.CurGameModeStr == "TM_COTDQualifications_Online" || server_info.CurGameModeStr == "TM_TimeAttackDaily_Online")) {
     
         int windowFlags = UI::WindowFlags::NoTitleBar | UI::WindowFlags::NoCollapse | UI::WindowFlags::AlwaysAutoResize | UI::WindowFlags::NoDocking;
 
@@ -146,7 +146,7 @@ void ReadHUD() {
     auto server_info = cast<CTrackManiaNetworkServerInfo>(network.ServerInfo);
 
 	while (true) {
-		if (network.ClientManiaAppPlayground !is null && network.ClientManiaAppPlayground.Playground !is null && server_info.CurGameModeStr == "TM_TimeAttackDaily_Online") {
+		if (network.ClientManiaAppPlayground !is null && network.ClientManiaAppPlayground.Playground !is null && (server_info.CurGameModeStr == "TM_COTDQualifications_Online" || server_info.CurGameModeStr == "TM_TimeAttackDaily_Online")) {
             auto uilayers = network.ClientManiaAppPlayground.UILayers;
             for (uint i = 0; i < uilayers.Length; i++) {
                 if (uilayers[i].LocalPage.MainFrame !is null) {
@@ -205,7 +205,7 @@ void Main() {
 
     while(true) {
 
-        if (Permissions::PlayOnlineCompetition() && network.ClientManiaAppPlayground !is null && network.ClientManiaAppPlayground.Playground !is null && network.ClientManiaAppPlayground.Playground.Map !is null && server_info.CurGameModeStr == "TM_TimeAttackDaily_Online") {
+        if (Permissions::PlayOnlineCompetition() && network.ClientManiaAppPlayground !is null && network.ClientManiaAppPlayground.Playground !is null && network.ClientManiaAppPlayground.Playground.Map !is null && (server_info.CurGameModeStr == "TM_COTDQualifications_Online" || server_info.CurGameModeStr == "TM_TimeAttackDaily_Online")) {
             
             string mapid = network.ClientManiaAppPlayground.Playground.Map.MapInfo.MapUid;
 

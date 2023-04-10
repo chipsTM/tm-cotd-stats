@@ -1,10 +1,8 @@
 [meta]
 name     = "COTD Stats"
-author   = "Chips"
+author   = "chips"
 category = "Race"
-version  = "1.5.1"
-
-siteid = 162
+version  = "1.5.2"
 
 [script]
 dependencies = [ "NadeoServices" ]

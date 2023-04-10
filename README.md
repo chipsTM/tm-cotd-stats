@@ -17,6 +17,12 @@ Displays a widget that shows your current division as you play COTD qualifying.
 
 ## Change log
 
+### v1.5.2
+- check for new COTD mode
+
+### v1.5.1
+- fix for game update
+
 ### v1.5
 - code cleanup and fixes
 
