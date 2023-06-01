@@ -131,7 +131,7 @@ void RenderMenu() {
 #endif
 }
 
-Json::Value FetchEndpoint(const string &in route) {
+Json::Value@ FetchEndpoint(const string &in route) {
     auto req = NadeoServices::Get("NadeoClubServices", route);
     req.Start();
     while(!req.Finished()) {
@@ -153,7 +153,12 @@ void ReadHUD() {
                     string drank;
                     string dname;
                     string dtime;
-                    auto lrank = uilayers[i].LocalPage.MainFrame.GetFirstChild("label-rank");
+                    auto scoreOwner = uilayers[i].LocalPage.MainFrame.GetFirstChild("frame-score-owner");
+                    if (scoreOwner is null) {
+                        continue;
+                    }
+
+                    auto lrank = cast<CGameManialinkFrame@>(scoreOwner).GetFirstChild("label-rank");
                     if (lrank !is null) {
                         drank = cast<CControlLabel>(lrank.Control).Label;
                         float irank = Text::ParseFloat(drank);
@@ -164,7 +169,7 @@ void ReadHUD() {
                     // if (lname !is null) {
                     //     dname = cast<CControlLabel>(lname.Control).Label;
                     // }
-                    auto ltime = uilayers[i].LocalPage.MainFrame.GetFirstChild("label-time");
+                    auto ltime = cast<CGameManialinkFrame@>(scoreOwner).GetFirstChild("label-time");
                     if (ltime !is null) {
                         dtime = cast<CControlLabel>(ltime.Control).Label;
                         pb.time = Time::ParseRelativeTime(dtime);
@@ -227,17 +232,19 @@ void Main() {
             // Use this to obtain "real-time" number of players registered in the COTD 
             // (could've also used this to determine player rank and score, but for better experience we get those from HUD instead)
             auto rank = FetchEndpoint(compUrl + "/api/challenges/" + challengeid + "/records/maps/" + mapid + "/players?players[]=" + network.PlayerInfo.WebServicesUserId);
-            totalPlayers = rank["cardinal"];
+            if (rank.HasKey("cardinal")) {
+                totalPlayers = rank["cardinal"];
+            }
 
             // Fetch Div 1 cutoff record
             auto leadDiv1 = FetchEndpoint(compUrl + "/api/challenges/" + challengeid + "/records/maps/" + mapid + "?length=1&offset=63");
-            if (leadDiv1.Length > 0) {
+            if (leadDiv1.GetType() == Json::Type::Array && leadDiv1.Length > 0) {
                 div1.time = leadDiv1[0]["time"];
             }
 
             if (showLowerBound && curdiv > 1) {
                 auto lowerBound = FetchEndpoint(compUrl + "/api/challenges/" + challengeid + "/records/maps/" + mapid + "?length=1&offset=" + (64 * (curdiv) - 1));
-                if (lowerBound.Length > 0) {
+                if (lowerBound.GetType() == Json::Type::Array && lowerBound.Length > 0) {
                     lowerbounddiv.time = lowerBound[0]["time"];
                 }
                 lowerbounddiv.div = "" + curdiv;
@@ -249,7 +256,7 @@ void Main() {
             // Fetch next best Div cutoff record only if we are higher than Div 2
             if (curdiv > 2) {
                 auto leadNextBest = FetchEndpoint(compUrl + "/api/challenges/" + challengeid + "/records/maps/" + mapid + "?length=1&offset=" + (64 * (curdiv - 1) - 1));
-                if (leadNextBest.Length > 0) {
+                if (leadNextBest.GetType() == Json::Type::Array && leadNextBest.Length > 0) {
                     nextdiv.time = leadNextBest[0]["time"];
                 }
                 nextdiv.div = "" + (curdiv-1);

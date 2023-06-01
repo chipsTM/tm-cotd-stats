@@ -17,6 +17,9 @@ Displays a widget that shows your current division as you play COTD qualifying.
 
 ## Change log
 
+### v1.5.3
+- fix HUD parsing and add better error handling/json fixes
+
 ### v1.5.2
 - check for new COTD mode
 
