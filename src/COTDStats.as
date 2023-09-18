@@ -250,12 +250,16 @@ void Main() {
             auto leadDiv1 = FetchMonitorEndpoint(monitorUrl + "/api/challenges/" + challengeid + "/records/maps/" + mapid + "?length=1&offset=63");
             if (leadDiv1.GetType() == Json::Type::Array && leadDiv1.Length > 0) {
                 div1.time = leadDiv1[0]["time"];
+            } else if (leadDiv1.GetType() == Json::Type::Object && leadDiv1['json_payload'].Length > 0) {
+                div1.time = leadDiv1['json_payload'][0]["time"];
             }
 
             if (showLowerBound && curdiv > 1) {
                 auto lowerBound = FetchMonitorEndpoint(monitorUrl + "/api/challenges/" + challengeid + "/records/maps/" + mapid + "?length=1&offset=" + (64 * (curdiv) - 1));
                 if (lowerBound.GetType() == Json::Type::Array && lowerBound.Length > 0) {
                     lowerbounddiv.time = lowerBound[0]["time"];
+                } else if (lowerBound.GetType() == Json::Type::Object && lowerBound['json_payload'].Length > 0) {
+                    lowerbounddiv.time = lowerBound['json_payload'][0]["time"];
                 }
                 lowerbounddiv.div = "" + curdiv;
                 lowerbounddiv.hidden = false;
@@ -268,6 +272,8 @@ void Main() {
                 auto leadNextBest = FetchMonitorEndpoint(monitorUrl + "/api/challenges/" + challengeid + "/records/maps/" + mapid + "?length=1&offset=" + (64 * (curdiv - 1) - 1));
                 if (leadNextBest.GetType() == Json::Type::Array && leadNextBest.Length > 0) {
                     nextdiv.time = leadNextBest[0]["time"];
+                } else if (leadNextBest.GetType() == Json::Type::Object && leadNextBest['json_payload'].Length > 0) {
+                    nextdiv.time = leadNextBest['json_payload'][0]["time"];
                 }
                 nextdiv.div = "" + (curdiv-1);
                 nextdiv.hidden = false;
