@@ -131,8 +131,17 @@ void RenderMenu() {
 #endif
 }
 
-Json::Value@ FetchEndpoint(const string &in route) {
+Json::Value@ FetchNadeoEndpoint(const string &in route) {
     auto req = NadeoServices::Get("NadeoClubServices", route);
+    req.Start();
+    while(!req.Finished()) {
+        yield();
+    }
+    return Json::Parse(req.String());
+}
+
+Json::Value@ FetchMonitorEndpoint(const string &in route) {
+    auto req = Net::HttpGet(route);
     req.Start();
     while(!req.Finished()) {
         yield();
@@ -202,6 +211,7 @@ void Main() {
     
     NadeoServices::AddAudience("NadeoClubServices");
     string compUrl = NadeoServices::BaseURLCompetition();
+    string monitorUrl = "map-monitor.xk.io";
 
     // Use Co-routine to read HUD faster than API calls
     startnew(ReadHUD);
@@ -220,7 +230,7 @@ void Main() {
 
             // We only need this info once at the beginning of the COTD
             if (challengeid == 0) {
-                auto matchstatus = FetchEndpoint(compUrl + "/api/cup-of-the-day/current");
+                auto matchstatus = FetchNadeoEndpoint(compUrl + "/api/cup-of-the-day/current");
                 if (matchstatus.HasKey("challenge") && matchstatus.HasKey("competition")) {
                     cotdName = matchstatus["competition"]["name"];
                     challengeid = matchstatus["challenge"]["id"];
@@ -231,19 +241,19 @@ void Main() {
 
             // Use this to obtain "real-time" number of players registered in the COTD 
             // (could've also used this to determine player rank and score, but for better experience we get those from HUD instead)
-            auto rank = FetchEndpoint(compUrl + "/api/challenges/" + challengeid + "/records/maps/" + mapid + "/players?players[]=" + network.PlayerInfo.WebServicesUserId);
+            auto rank = FetchMonitorEndpoint(monitorUrl + "/api/challenges/" + challengeid + "/records/maps/" + mapid + "/players?players[]=" + network.PlayerInfo.WebServicesUserId);
             if (rank.HasKey("cardinal")) {
                 totalPlayers = rank["cardinal"];
             }
 
             // Fetch Div 1 cutoff record
-            auto leadDiv1 = FetchEndpoint(compUrl + "/api/challenges/" + challengeid + "/records/maps/" + mapid + "?length=1&offset=63");
+            auto leadDiv1 = FetchMonitorEndpoint(monitorUrl + "/api/challenges/" + challengeid + "/records/maps/" + mapid + "?length=1&offset=63");
             if (leadDiv1.GetType() == Json::Type::Array && leadDiv1.Length > 0) {
                 div1.time = leadDiv1[0]["time"];
             }
 
             if (showLowerBound && curdiv > 1) {
-                auto lowerBound = FetchEndpoint(compUrl + "/api/challenges/" + challengeid + "/records/maps/" + mapid + "?length=1&offset=" + (64 * (curdiv) - 1));
+                auto lowerBound = FetchMonitorEndpoint(monitorUrl + "/api/challenges/" + challengeid + "/records/maps/" + mapid + "?length=1&offset=" + (64 * (curdiv) - 1));
                 if (lowerBound.GetType() == Json::Type::Array && lowerBound.Length > 0) {
                     lowerbounddiv.time = lowerBound[0]["time"];
                 }
@@ -255,7 +265,7 @@ void Main() {
 
             // Fetch next best Div cutoff record only if we are higher than Div 2
             if (curdiv > 2) {
-                auto leadNextBest = FetchEndpoint(compUrl + "/api/challenges/" + challengeid + "/records/maps/" + mapid + "?length=1&offset=" + (64 * (curdiv - 1) - 1));
+                auto leadNextBest = FetchMonitorEndpoint(monitorUrl + "/api/challenges/" + challengeid + "/records/maps/" + mapid + "?length=1&offset=" + (64 * (curdiv - 1) - 1));
                 if (leadNextBest.GetType() == Json::Type::Array && leadNextBest.Length > 0) {
                     nextdiv.time = leadNextBest[0]["time"];
                 }
