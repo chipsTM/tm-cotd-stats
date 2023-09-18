@@ -241,8 +241,8 @@ void Main() {
 
             // Use this to obtain "real-time" number of players registered in the COTD 
             // (could've also used this to determine player rank and score, but for better experience we get those from HUD instead)
-            auto rank = FetchMonitorEndpoint(monitorUrl + "/api/challenges/" + challengeid + "/records/maps/" + mapid + "/players?players[]=" + network.PlayerInfo.WebServicesUserId);
-            if (rank.HasKey("cardinal")) {
+            auto rank = FetchNadeoEndpoint(compUrl + "/api/challenges/" + challengeid + "/records/maps/" + mapid + "/players?players[]=" + network.PlayerInfo.WebServicesUserId);
+            if (rank.GetType() == Json::Type::Object && rank.HasKey("cardinal")) {
                 totalPlayers = rank["cardinal"];
             }
 
@@ -279,7 +279,7 @@ void Main() {
             // Reset challenge id once COTD ends
             challengeid = 0;
         }
-        sleep(15000);
+        sleep(30000);
     }
 #endif
 }

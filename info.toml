@@ -2,7 +2,7 @@
 name     = "COTD Stats"
 author   = "chips"
 category = "Race"
-version  = "1.5.4"
+version  = "1.5.5"
 
 [script]
 dependencies = [ "NadeoServices" ]
