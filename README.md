@@ -18,7 +18,6 @@ Displays a widget that shows your current division as you play COTD qualifying.
 ## Change log
 
 ### v1.5.5
-- reduce frequency from 15s to 30s
 - fix errors
 
 ### v1.5.4
