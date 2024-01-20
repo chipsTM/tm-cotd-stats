@@ -158,15 +158,6 @@ void RenderMenu() {
 #endif
 }
 
-Json::Value@ FetchNadeoEndpoint(const string &in route) {
-    auto req = NadeoServices::Get("NadeoClubServices", route);
-    req.Start();
-    while(!req.Finished()) {
-        yield();
-    }
-    return Json::Parse(req.String());
-}
-
 Json::Value@ FetchMonitorEndpoint(const string &in route) {
     auto req = Net::HttpGet(route);
     req.Start();
@@ -240,8 +231,6 @@ void Main() {
     auto network = cast<CTrackManiaNetwork>(app.Network);
     auto server_info = cast<CTrackManiaNetworkServerInfo>(network.ServerInfo);
 
-    NadeoServices::AddAudience("NadeoClubServices");
-    string compUrl = NadeoServices::BaseURLCompetition();
     string monitorUrl = "https://map-monitor.xk.io/cached";
 
     // Use Co-routine to read HUD faster than API calls
@@ -258,10 +247,6 @@ void Main() {
             (server_info.CurGameModeStr == "TM_COTDQualifications_Online" || (!showOnlyDuringQuali && server_info.CurGameModeStr == "TM_TimeAttackDaily_Online"))
         ) {
             string mapid = network.ClientManiaAppPlayground.Playground.Map.MapInfo.MapUid;
-
-            while (!NadeoServices::IsAuthenticated("NadeoClubServices")) {
-                yield();
-            }
 
             // We only need this info once at the beginning of the COTD
             if (challengeid == 0) {
