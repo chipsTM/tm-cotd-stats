@@ -7,9 +7,6 @@ bool hideWithGame = true;
 [Setting category="Display Settings" name="Hide when Openplanet UI is hidden"]
 bool hideWithOP = false;
 
-[Setting category="Display Settings" name="Only show when in qualifier" description="When disabled, this will still show when you leave the qualifier and rejoin in standard Time Attack"]
-bool showOnlyDuringQuali = true;
-
 [Setting category="Display Settings" name="Show competition name" description="Shows date and COTD number at the top of the window"]
 bool showCompName = true;
 
@@ -73,7 +70,7 @@ void Render() {
     if (
         windowVisible &&
         app.CurrentPlayground !is null &&
-        (server_info.CurGameModeStr == "TM_COTDQualifications_Online" || (!showOnlyDuringQuali && server_info.CurGameModeStr == "TM_TimeAttackDaily_Online"))
+        server_info.CurGameModeStr == "TM_COTDQualifications_Online"
     ) {
         int windowFlags = UI::WindowFlags::NoTitleBar | UI::WindowFlags::NoCollapse | UI::WindowFlags::AlwaysAutoResize | UI::WindowFlags::NoDocking;
 
@@ -176,7 +173,7 @@ void ReadHUD() {
         if (
             network.ClientManiaAppPlayground !is null &&
             network.ClientManiaAppPlayground.Playground !is null &&
-            (server_info.CurGameModeStr == "TM_COTDQualifications_Online" || (!showOnlyDuringQuali && server_info.CurGameModeStr == "TM_TimeAttackDaily_Online"))
+            server_info.CurGameModeStr == "TM_COTDQualifications_Online"
         ) {
             auto uilayers = network.ClientManiaAppPlayground.UILayers;
             for (uint i = 0; i < uilayers.Length; i++) {
@@ -244,7 +241,7 @@ void Main() {
             network.ClientManiaAppPlayground !is null &&
             network.ClientManiaAppPlayground.Playground !is null &&
             network.ClientManiaAppPlayground.Playground.Map !is null &&
-            (server_info.CurGameModeStr == "TM_COTDQualifications_Online" || (!showOnlyDuringQuali && server_info.CurGameModeStr == "TM_TimeAttackDaily_Online"))
+            server_info.CurGameModeStr == "TM_COTDQualifications_Online"
         ) {
             string mapid = network.ClientManiaAppPlayground.Playground.Map.MapInfo.MapUid;
 
